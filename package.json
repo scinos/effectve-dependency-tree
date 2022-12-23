@@ -1,6 +1,6 @@
 {
   "name": "effective-dependency-tree",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "A tool to generate the effective list of dependencies of any project.",
   "main": "index.js",
   "author": "Automattic Inc.",

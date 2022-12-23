@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2022-12-23
+
 - Initial release
 
-### [0.0.0]
+[unreleased]: https://github.com/scinos/effectve-dependency-tree/compare/1.0.0...HEAD
+[1.0.0]: https://github.com/scinos/effectve-dependency-tree/releases/tag/1.0.0
