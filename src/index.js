@@ -6,6 +6,12 @@ import treeify from "object-treeify";
 const debug = _debug("effective-dependency-tree");
 
 /**
+ * @typedef PackageJSON
+ * @property {string} name Name of the package
+ * @property {string} version Vesion of the package
+ */
+
+/**
  * Generator that yields all places were node will look for modules
  * For a path like : a/node_modules/b/node_modules/c
  * It will generate the candidates:
@@ -15,7 +21,7 @@ const debug = _debug("effective-dependency-tree");
  *	- node_modules
  *
  * @param {string} packagePath Package path used as seed for the traversal
- * @yields Path to `node_modules`.
+ * @yields {string} Path to `node_modules`.
  */
 export const candidates = function* (packagePath) {
   const parts = packagePath.split(path.sep);
@@ -33,13 +39,23 @@ export const candidates = function* (packagePath) {
 /**
  * Recursively finds the dependency tree for a package and its dependencies
  *
- * @param {object} packageJson package.json content of the package
- * @param {string} packagePath Location of package.json, used to decide where to look for deps
- * @param {string[]} parents List of parent dependencies already visited, used to avoid circular loops
- * @param {Map} cache Map used to cache already resolved paths of the dependency tree
+ * @param {object} options
+ * @param {PackageJSON} options.packageJson package.json content of the package
+ * @param {string} options.packagePath Location of package.json, used to decide where to look for deps
+ * @param {string[]} options.parents List of parent dependencies already visited, used to avoid circular loops
+ * @param {Map<string,Record<string,string[] | string>>} options.cache Map used to cache already resolved paths of the dependency tree
+ * @param {string[]>} options.dependencyKeys Keys to use to look up for dependences
+ * @returns { {tree: Record<string, string[] | string>, isCacheable: boolean} }
  */
-const findTree = (packageJson, packagePath, parents, cache) => {
+const findTree = ({
+  packageJson,
+  packagePath,
+  parents,
+  cache,
+  dependencyKeys = ["dependencies", "peerDependencies"],
+}) => {
   const name = `${packageJson.name}@${packageJson.version}`;
+
   if (parents.includes(name)) {
     debug(
       `Package ${name} at ${packagePath} seems to be a circular dependency!`
@@ -61,49 +77,51 @@ const findTree = (packageJson, packagePath, parents, cache) => {
   // For each dependency...
   debug(`Finding dependencies for ${name} at ${packagePath}`);
   let treeIsCacheable = true;
-  const dependencies = Object.keys(packageJson.dependencies || []).reduce(
-    (accumulated, dependency) => {
-      let dependencyPath;
-      let dependencyJson;
 
-      // Loop over all possible locations of the dependency's package.json
-      for (const candidatePath of candidates(packagePath)) {
-        dependencyPath = path.join(candidatePath, dependency, "package.json");
-        debug(`  Trying ${dependencyPath}`);
-        try {
-          dependencyJson = JSON.parse(fs.readFileSync(dependencyPath, "utf8"));
-          debug(`  Found!!!`);
-          break;
-        } catch (e) {
-          debug(`  Not found`);
-          // Path doesn't exists. That's fine, continue with the next candidate.
-          continue;
-        }
-      }
-
-      if (!dependencyJson) {
-        console.warn(
-          `Can't find a candidate for ${dependency} in ${packagePath}`
-        );
-        return accumulated;
-      }
-
-      // Continue finding dependencies recursively.
-      const { tree, isCacheable } = findTree(
-        dependencyJson,
-        dependencyPath,
-        [...parents, name],
-        cache
-      );
-      // Propagate 'cacheability': if the package is not cacheable, none of the parents should be.
-      treeIsCacheable = treeIsCacheable && isCacheable;
-      return {
-        ...accumulated,
-        ...tree,
-      };
-    },
-    {}
+  const dependencyNames = dependencyKeys.flatMap((dependencyKey) =>
+    Object.keys(packageJson[dependencyKey] ?? [])
   );
+
+  const dependencies = dependencyNames.reduce((accumulated, dependency) => {
+    let dependencyPath;
+    let dependencyJson;
+
+    // Loop over all possible locations of the dependency's package.json
+    for (const candidatePath of candidates(packagePath)) {
+      dependencyPath = path.join(candidatePath, dependency, "package.json");
+      debug(`  Trying ${dependencyPath}`);
+      try {
+        dependencyJson = JSON.parse(fs.readFileSync(dependencyPath, "utf8"));
+        debug(`  Found!!!`);
+        break;
+      } catch (e) {
+        debug(`  Not found`);
+        // Path doesn't exists. That's fine, continue with the next candidate.
+        continue;
+      }
+    }
+
+    if (!dependencyJson) {
+      console.warn(
+        `Can't find a candidate for ${dependency} in ${packagePath}`
+      );
+      return accumulated;
+    }
+
+    // Continue finding dependencies recursively.
+    const { tree, isCacheable } = findTree({
+      packageJson: dependencyJson,
+      packagePath: dependencyPath,
+      parents: [...parents, name],
+      cache,
+    });
+    // Propagate 'cacheability': if the package is not cacheable, none of the parents should be.
+    treeIsCacheable = treeIsCacheable && isCacheable;
+    return {
+      ...accumulated,
+      ...tree,
+    };
+  }, {});
 
   const result = { [name]: dependencies };
   if (treeIsCacheable) cache.set(packagePath, result);
@@ -118,28 +136,48 @@ const findTree = (packageJson, packagePath, parents, cache) => {
  */
 const generateEffectiveTree = (root) => {
   const packagePath = path.resolve(root);
-  const packageJson = JSON.parse(
-    fs.readFileSync(path.join(packagePath), "utf8")
-  );
-  const { tree } = findTree(
-    packageJson,
-    path.dirname(packagePath),
-    [],
-    new Map()
-  );
+  const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+
+  const { tree } = findTree({
+    packageJson: packageJson,
+    packagePath: path.dirname(packagePath),
+    parents: [],
+    cache: new Map(),
+    dependencyKeys: ["dependencies", "devDependencies", "peerDependencies"],
+  });
   return tree;
 };
 
+/**
+ *
+ * @param {string} root
+ * @returns {string|string[]}
+ */
 export const getEffectiveTreeAsTree = (root) => {
   const tree = generateEffectiveTree(root);
   return treeify(tree, {
+    /**
+     * @param {string} a
+     * @param {string} b
+     */
     sortFn: (a, b) => a.localeCompare(b),
   });
 };
 
+/**
+ *
+ * @param {string} root
+ * @returns
+ */
 export const getEffectiveTreeAsList = (root) => {
   const tree = generateEffectiveTree(root);
 
+  /**
+   *
+   * @param {Record<string, any>} branch
+   * @param {string[]?} prefix
+   * @returns
+   */
   function print(branch, prefix = []) {
     return (
       Object.entries(branch)

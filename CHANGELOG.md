@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Added
+
+- Follow peerDependencies as well when generating the graph
+- Follow devDependencies but only for root packages
+
 ## [1.0.0] - 2022-12-23
 
 - Initial release
