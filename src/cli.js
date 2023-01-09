@@ -3,7 +3,7 @@ import path from "node:path";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { getEffectiveTreeAsTree, getEffectiveTreeAsList } from "./index.js";
+import { printEffectiveTreeAsTree, printEffectiveTreeAsList } from "./index.js";
 
 const args = yargs(hideBin(process.argv))
   .usage("Usage: $0")
@@ -28,10 +28,8 @@ const args = yargs(hideBin(process.argv))
   .help("h")
   .alias("h", "help").argv;
 
-let tree;
 if (args.output === "tree") {
-  tree = getEffectiveTreeAsTree(args.root);
+  printEffectiveTreeAsTree(args.root);
 } else {
-  tree = getEffectiveTreeAsList(args.root);
+  printEffectiveTreeAsList(args.root);
 }
-console.log(tree);

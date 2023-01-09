@@ -153,15 +153,16 @@ const generateEffectiveTree = (root) => {
  * @param {string} root
  * @returns {string|string[]}
  */
-export const getEffectiveTreeAsTree = (root) => {
+export const printEffectiveTreeAsTree = (root) => {
   const tree = generateEffectiveTree(root);
-  return treeify(tree, {
+  const result = treeify(tree, {
     /**
      * @param {string} a
      * @param {string} b
      */
     sortFn: (a, b) => a.localeCompare(b),
   });
+  console.log(result);
 };
 
 /**
@@ -169,7 +170,7 @@ export const getEffectiveTreeAsTree = (root) => {
  * @param {string} root
  * @returns
  */
-export const getEffectiveTreeAsList = (root) => {
+export const printEffectiveTreeAsList = (root) => {
   const tree = generateEffectiveTree(root);
 
   /**
@@ -195,7 +196,5 @@ export const getEffectiveTreeAsList = (root) => {
     );
   }
 
-  return print(tree)
-    .map((line) => line.join(" "))
-    .join("\n");
+  print(tree).forEach((line) => console.log(line.join(" ")));
 };
