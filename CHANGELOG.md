@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2023-07-22
+
 ### Breaking
 
 - Exclude optional peer dependencies (specified in `peerDependenciesMeta`) when computing the tree. This is a breaking change, as it may generate different output than before for the same dependency tree.
@@ -32,7 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release
 
-[unreleased]: https://github.com/scinos/effectve-dependency-tree/compare/1.1.1...HEAD
+[unreleased]: https://github.com/scinos/effectve-dependency-tree/compare/2.0.0...HEAD
+[2.0.0]: https://github.com/scinos/effectve-dependency-tree/compare/1.1.1...2.0.0
 [1.1.1]: https://github.com/scinos/effectve-dependency-tree/compare/1.1.0...1.1.1
 [1.1.0]: https://github.com/scinos/effectve-dependency-tree/compare/1.0.0...1.1.0
 [1.0.0]: https://github.com/scinos/effectve-dependency-tree/releases/tag/1.0.0
