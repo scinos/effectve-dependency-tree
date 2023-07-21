@@ -5,11 +5,12 @@ import { hideBin } from "yargs/helpers";
 
 import { printEffectiveTreeAsTree, printEffectiveTreeAsList } from "./index.js";
 
-const args = yargs(hideBin(process.argv))
+const { root, output } = yargs(hideBin(process.argv))
   .usage("Usage: $0")
   .options({
     root: {
       alias: "r",
+      array: true,
       describe: "Path of the root package.json. Defaults to ./package.json",
       default: path.join(process.cwd(), "package.json"),
     },
@@ -28,8 +29,11 @@ const args = yargs(hideBin(process.argv))
   .help("h")
   .alias("h", "help").argv;
 
-if (args.output === "tree") {
-  printEffectiveTreeAsTree(args.root);
-} else {
-  printEffectiveTreeAsList(args.root);
+const tree =
+  output === "tree"
+    ? getEffectiveTreeAsTree(root)
+    : getEffectiveTreeAsList(root);
+
+for (const line of tree) {
+  console.log(line);
 }

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking
+
+- Exclude optional peer dependencies (specified in `peerDependenciesMeta`) when computing the tree. This is a breaking change, as it may generate different output than before for the same dependency tree.
+
+### Addded
+
+- Supports to pass multiple `package.json`. This will speed up effective tree generation in monorepos, where different `package.json` will probably reuse most of the modules.
+
 ## [1.1.1] - 2023-01-09
 
 ### Fixes
@@ -17,8 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Follow peerDependencies as well when generating the graph
-- Follow devDependencies but only for root packages
+- Follow `peerDependencies` as well when generating the graph
+- Follow `devDependencies` but only for root packages
 
 ## [1.0.0] - 2022-12-23
 

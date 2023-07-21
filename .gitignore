@@ -207,3 +207,5 @@ Temporary Items
 # .pnp.*
 
 # End of https://www.toptal.com/developers/gitignore/api/osx,node,yarn,visualstudiocode
+
+.vscode/settings.json

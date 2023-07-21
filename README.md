@@ -12,6 +12,9 @@ It generates the _logical_ representation of the tree. A package may appear mult
 it is depended on by multiple packages, even if all point to the same file on the filesystem.
 In other words, it "un-hoists" hoisted/deduped packages.
 
+It will traverse regular `dependencies`, `devDependencies` and `peerDependencies`, but will ignore
+optional `peerDependencies` (as specified in `peerDependenciesMeeta`).
+
 ## Why?
 
 Usually, the package manger has a way to list the dependencies (`npm ls` or `yarn list`). However
@@ -40,6 +43,13 @@ effective-dependency-tree --root "./src/package.json"
 
 This tool can generate either an ascii tree, or a list (easier to visualize dependency chains in
 big trees). It can be specified with the flags `-o tree` or `-o list`.
+
+If you are using this tool to analyze many packages (e.g. in a monorepo), you can pass `--root` multiple
+times. Discovered trees will be reused and cached across packages, significatively speeding it up:
+
+```bash
+effective-dependency-tree --root "./packages/a/package.json" --root "./packages/b/package.json"
+```
 
 Check out `effective-dependency-tree --help` for other flags and examples.
 

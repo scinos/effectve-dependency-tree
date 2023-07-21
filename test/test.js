@@ -61,14 +61,14 @@ describe("Effective tree generation", () => {
         }),
       });
 
-      const tree = getEffectiveTreeAsTree("/project/root/package.json");
+      const tree = getEffectiveTreeAsTree(["/project/root/package.json"]);
       //prettier-ignore
       expect(tree).toEqual([
 				'└─ root@1.0.0',
 				'   ├─ a@1.1.1',
 				'   └─ b@2.2.2',
 				'      └─ c@3.2.1',
-			].join('\n'));
+			]);
     });
 
     it("Detects circular dependencies", () => {
@@ -102,7 +102,7 @@ describe("Effective tree generation", () => {
         }),
       });
 
-      const tree = getEffectiveTreeAsTree("/project/root/package.json");
+      const tree = getEffectiveTreeAsTree(["/project/root/package.json"]);
 
       //prettier-ignore
       expect(tree).toEqual([
@@ -111,7 +111,7 @@ describe("Effective tree generation", () => {
 				'   └─ b@2.2.2',
 				'      └─ c@3.2.1',
 				'         └─ b@2.2.2: [Circular]'
-			].join('\n'));
+			]);
     });
 
     it("Does not cache circular dependencies", async () => {
@@ -147,7 +147,7 @@ describe("Effective tree generation", () => {
         }),
       });
 
-      const tree = await getEffectiveTreeAsTree("/project/root/package.json");
+      const tree = getEffectiveTreeAsTree(["/project/root/package.json"]);
 
       /**
        * Note that when we find 'b' in the second chain (root->b->...), it has been processed previously in the first chain
@@ -171,7 +171,7 @@ describe("Effective tree generation", () => {
 				'      └─ c@3.2.1',
 				'         └─ a@1.1.1',
 				'            └─ b@2.2.2: [Circular]',
-			].join('\n'));
+			]);
     });
 
     it("Uses devDependencies from the root", () => {
@@ -204,13 +204,13 @@ describe("Effective tree generation", () => {
         }),
       });
 
-      const tree = getEffectiveTreeAsTree("/project/root/package.json");
+      const tree = getEffectiveTreeAsTree(["/project/root/package.json"]);
       //prettier-ignore
       expect(tree).toEqual([
 				'└─ root@1.0.0',
 				'   ├─ a@1.1.1',
 				'   └─ b@2.2.2'
-			].join('\n'));
+			]);
     });
 
     it("Uses peerDependencies from the root", () => {
@@ -243,14 +243,102 @@ describe("Effective tree generation", () => {
         }),
       });
 
-      const tree = getEffectiveTreeAsTree("/project/root/package.json");
+      const tree = getEffectiveTreeAsTree(["/project/root/package.json"]);
       //prettier-ignore
       expect(tree).toEqual([
 				'└─ root@1.0.0',
 				'   ├─ a@1.1.1',
 				'   └─ b@2.2.2',
 				'      └─ c@3.2.1',
-			].join('\n'));
+			]);
+    });
+
+    it("Ignores optional peer dependencoes", () => {
+      mockFs({
+        "/project/root/package.json": JSON.stringify({
+          name: "root",
+          version: "1.0.0",
+          peerDependencies: {
+            a: "^1.0.0",
+            b: "^2.0.0",
+          },
+          peerDependenciesMeta: {
+            a: {
+              optional: true,
+            },
+          },
+        }),
+        "/project/root/node_modules/a/package.json": JSON.stringify({
+          name: "a",
+          version: "1.1.1",
+          dependencies: {},
+        }),
+        "/project/root/node_modules/b/package.json": JSON.stringify({
+          name: "b",
+          version: "2.2.2",
+          peerDependencies: {
+            c: "3.2.1",
+            d: "4.2.1",
+          },
+          peerDependenciesMeta: {
+            c: {
+              optional: true,
+            },
+          },
+        }),
+        "/project/root/node_modules/c/package.json": JSON.stringify({
+          name: "c",
+          version: "3.2.1",
+        }),
+        "/project/root/node_modules/d/package.json": JSON.stringify({
+          name: "d",
+          version: "4.2.1",
+        }),
+      });
+
+      const tree = getEffectiveTreeAsTree(["/project/root/package.json"]);
+      //prettier-ignore
+      expect(tree).toEqual([
+				'└─ root@1.0.0',
+				'   └─ b@2.2.2',
+				'      └─ d@4.2.1',
+			]);
+    });
+
+    it("Supports multiple roots", () => {
+      mockFs({
+        "/project/root/package-1/package.json": JSON.stringify({
+          name: "package-1",
+          version: "1.0.0",
+          dependencies: {
+            a: "^1.0.0",
+          },
+        }),
+        "/project/root/package-2/package.json": JSON.stringify({
+          name: "package-2",
+          version: "1.0.0",
+          dependencies: {
+            a: "^1.0.0",
+          },
+        }),
+        "/project/root/node_modules/a/package.json": JSON.stringify({
+          name: "a",
+          version: "1.1.1",
+          dependencies: {},
+        }),
+      });
+
+      const tree = getEffectiveTreeAsTree([
+        "/project/root/package-1/package.json",
+        "/project/root/package-2/package.json",
+      ]);
+      //prettier-ignore
+      expect(tree).toEqual([
+        "├─ package-1@1.0.0",
+        "│  └─ a@1.1.1",
+        "└─ package-2@1.0.0",
+        "   └─ a@1.1.1"
+			]);
     });
   });
 
@@ -288,7 +376,7 @@ describe("Effective tree generation", () => {
         }),
       });
 
-      const tree = await getEffectiveTreeAsList("/project/root/package.json");
+      const tree = await getEffectiveTreeAsList(["/project/root/package.json"]);
 
       //prettier-ignore
       expect(tree).toEqual([
@@ -301,7 +389,7 @@ describe("Effective tree generation", () => {
 				'root@1.0.0 b@2.2.2 c@3.2.1',
 				'root@1.0.0 b@2.2.2 c@3.2.1 a@1.1.1',
 				'root@1.0.0 b@2.2.2 c@3.2.1 a@1.1.1 b@2.2.2 [Circular]',
-			].join('\n'));
+			]);
     });
   });
 

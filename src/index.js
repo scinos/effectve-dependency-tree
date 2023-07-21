@@ -78,9 +78,13 @@ const findTree = ({
   debug(`Finding dependencies for ${name} at ${packagePath}`);
   let treeIsCacheable = true;
 
-  const dependencyNames = dependencyKeys.flatMap((dependencyKey) =>
-    Object.keys(packageJson[dependencyKey] ?? [])
-  );
+  const dependencyNames = dependencyKeys
+    .flatMap((dependencyKey) => Object.keys(packageJson[dependencyKey] ?? []))
+    .filter((dependency) => {
+      return !(
+        packageJson["peerDependenciesMeta"]?.[dependency]?.optional ?? false
+      );
+    });
 
   const dependencies = dependencyNames.reduce((accumulated, dependency) => {
     let dependencyPath;
@@ -132,20 +136,24 @@ const findTree = ({
  * Finds the effective dependencies tree (aka the logical tree) of a given package
  * givent its package.json
  *
- * @param {string} root Path to package.json
+ * @param {string[]} roots Paths to package.json
  */
-const generateEffectiveTree = (root) => {
-  const packagePath = path.resolve(root);
-  const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+const generateEffectiveTree = (roots) => {
+  const cache = new Map();
 
-  const { tree } = findTree({
-    packageJson: packageJson,
-    packagePath: path.dirname(packagePath),
-    parents: [],
-    cache: new Map(),
-    dependencyKeys: ["dependencies", "devDependencies", "peerDependencies"],
-  });
-  return tree;
+  return roots.reduce((acc, root) => {
+    const packagePath = path.resolve(root);
+    const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+
+    const { tree } = findTree({
+      packageJson: packageJson,
+      packagePath: path.dirname(packagePath),
+      parents: [],
+      cache,
+      dependencyKeys: ["dependencies", "devDependencies", "peerDependencies"],
+    });
+    return { ...acc, ...tree };
+  }, {});
 };
 
 /**
@@ -153,7 +161,7 @@ const generateEffectiveTree = (root) => {
  * @param {string} root
  * @returns {string|string[]}
  */
-export const printEffectiveTreeAsTree = (root) => {
+export const getEffectiveTreeAsTree = (root) => {
   const tree = generateEffectiveTree(root);
   const result = treeify(tree, {
     /**
@@ -161,17 +169,19 @@ export const printEffectiveTreeAsTree = (root) => {
      * @param {string} b
      */
     sortFn: (a, b) => a.localeCompare(b),
+    joined: false,
+    breakCircularWith: null,
   });
-  console.log(result);
+  return result;
 };
 
 /**
  *
- * @param {string} root
+ * @param {string[]} root
  * @returns
  */
-export const printEffectiveTreeAsList = (root) => {
-  const tree = generateEffectiveTree(root);
+export const getEffectiveTreeAsList = (roots) => {
+  const tree = generateEffectiveTree(roots);
 
   /**
    *
@@ -196,5 +206,5 @@ export const printEffectiveTreeAsList = (root) => {
     );
   }
 
-  print(tree).forEach((line) => console.log(line.join(" ")));
+  return print(tree).map((line) => line.join(" "));
 };
