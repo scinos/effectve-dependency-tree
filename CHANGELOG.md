@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixes
+
+- Fix typo in exported names which prevents CLI to work.
+
 ## [2.0.0] - 2023-07-22
 
 ### Breaking
